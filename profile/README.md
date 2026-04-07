@@ -4,7 +4,7 @@
 
 OpenSig is an open standard for digitally signing, proving, and verifying files — without ever uploading them.
 
-It gives any file into **verifiable proof of existence, intent, and identity**, anchored to a permanent public record (any EVM-based blockchain).
+It gives any file **verifiable proof of existence, intent, and identity**, anchored to a permanent public record (any EVM-based blockchain).
 
 ---
 
@@ -74,7 +74,7 @@ You can build:
 
 ### 🧾 Protocol & Standard
 
-* **opensig-protocol**
+* **[opensig-protocol](https://github.com/OpenSig/opensig-protocol)**
   The core OpenSig protocol:
 
   * OpenSig Standard
@@ -83,7 +83,7 @@ You can build:
 
 ### 🛠 Reference Implementation
 
-* **opensig-ts**
+* **[opensig-ts](https://github.com/OpenSig/opensig-ts)**
   TypeScript implementation of the OpenSig standard
 
   * Sign and verify files
@@ -94,10 +94,10 @@ You can build:
 
 No longer supported. Simple Bitcoin-based e-sign and notarisation. See https://opensig.net/opensig-btc-whitepaper.pdf.
 
-* **opensig-btc**
+* **[opensig-btc](https://github.com/OpenSig/opensig-btc)**
   Command line client
 
-* **opensig-btc-lib**
+* **[opensig-btc-lib](https://github.com/OpenSig/opensig-btc-lib)**
   Bitcoin e-sign library
 
 ---
