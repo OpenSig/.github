@@ -1,204 +1,177 @@
 # OpenSig
 
-OpenSig is an open e-sign and digital notarisation standard for privately signing and verifying files of any type and size.
+OpenSig is an open protocol for signing and notarising arbitrary digital data without revealing the data itself. It is designed for digital identity-based e-signature and notarisation solutions.
 
-It gives a file verifiable proof of existence, intent, and possession, anchored to a permanent public record (any EVM-based blockchain).
+It provides a deterministic, verifiable mapping between:
+- a file
+- a signer
+- a point in time
 
----
-
-## What is OpenSig?
-
-OpenSig is a **file-native signature and notarisation protocol**.
-
-* Sign or notarise any file (PDFs, images, code, videos, zips, datasets…) locally on device
-* Prove when it existed
-* Prove who signed it
-* Include optional intent or metadata
-* Verify independently - no vendor lock-in
-
-Files never leave your device. Only a derived, encrypted proof is published.
+Anchored to a public execution layer (EVM-compatible chains).
 
 ---
 
-## Core Principles
+## Overview
 
-* **Privacy-first**
-  
-  Files are never uploaded. Proofs are meaningless without the original file. File hash is never exposed.
+OpenSig defines a method for:
 
-* **Independent verification**
+- generating signatures from a file locally
+- publishing those signatures to a public registry
+- deterministically discovering and verifying them given the original file
 
-  Anyone can verify a signature without trusting OpenSig.
+The protocol avoids:
+- file upload
+- centralised indexing
+- dependence on a verifying authority
 
-* **Open standard**
-
-  Fully open and free to build on.
-
-* **File-native**
-
-  Works with *any* file type, not just PDFs.
-
-* **Immutable proofs**
-
-  Once published, signatures cannot be altered or repudiated.
-
-* **Digital identity ready**
-
-  DID compatible with the `did:os:...` method.
+Only derived data is published.
 
 ---
 
-## How it Works
+## Properties
 
-1. A file is hashed (sha256) locally on the user’s device
-2. A deterministic chain of signature hashes is generated
-3. The next free signature (with optional data) is published to a public blockchain (any EVM-based chain supported) directly with the user's digital identity (OpenSig DID or ppk pair), encrypted with the file hash.
-4. Anyone with the original file can:
+- **Local-first**  
+  All hashing, signing, and encryption occurs client-side.
 
-   * discover signatures
-   * verify integrity
-   * read associated data
+- **Non-disclosure**  
+  The file and its raw hash are never published.
 
-   Without the original file:
+- **Unlinkability (without the file)**  
+  Published signatures cannot be correlated to a file or to each other without possession of that file.
 
-   * signatures cannot be linked to the original file
-   * signatures cannot be linked to each other
-   * intent cannot be decrypted
+- **Deterministic discovery**  
+  Signature ordering is derived from the file itself, not external indexing.
 
-See the [protocol spec](https://github.com/OpenSig/opensig-protocol/blob/main/standard/opensig-standard.md) for details.
+- **Chain-specific separation**  
+  Signature sequences differ per chain, preventing replay.
+
+- **Independent verification**  
+  No reliance on a service provider for validation.
 
 ---
 
-## What You Can Build
+## Protocol Sketch
 
-OpenSig is a primitive.
+Given a file:
 
-You can build:
+```
+H_d = SHA256(file)
+H_c = SHA256(chainId || H_d)
 
-* Digital signing workflows
-* Proof-of-authorship systems
-* IP protection tools
-* Approval / handoff systems
-* Audit trails and compliance layers
-* Verifiable messaging or publishing systems
+Sig₀ = SHA256(H_c)
+Sigₙ = SHA256(H_c || Sigₙ₋₁)
+```
+
+
+Each signature is published once to a registry contract.
+
+Verification proceeds by iterating the sequence and querying for existing entries.
+
+---
+
+## Data Model
+
+A signature event contains:
+
+- timestamp (block time)
+- signer (address / DID)
+- signature (bytes32)
+- optional data payload (bytes)
+
+Payload:
+- supports arbitrary bytes, strings and object data (MessagePacked)
+- optionally encrypted using `H_d` as key (AES-GCM)
+
+Without `H_d`:
+- payload cannot be decrypted
+- signatures cannot be associated with a document
+
+---
+
+## Identity
+
+OpenSig is compatible with:
+
+- EVM keypairs
+- `did:os` DID method
+
+The DID method defines how identities resolve and how signatures bind to them. OpenSig DIDs are deterministically derived from the user's EVM address (EOA or smart account) and chain id.
 
 ---
 
 ## Repositories
 
-### Protocol & Standard
+### Protocol
 
-* **[opensig-protocol](https://github.com/OpenSig/opensig-protocol)**
-  The core OpenSig protocol:
-
-  * OpenSig Standard
-  * `did:os` decentralised identity spec
-  * OpenSig Registry smart contracts
+- [`opensig-protocol`](https://github.com/OpenSig/opensig-protocol)  
+  - standard specification  
+  - `did:os` method  
+  - registry contract code
 
 ### Reference Implementation
 
-* **[opensig-ts](https://github.com/OpenSig/opensig-ts)**
-  TypeScript implementation of the OpenSig standard
+- [`opensig-ts`](https://github.com/OpenSig/opensig-ts)  
+  - hashing and document model  
+  - signature generation  
+  - discovery and verification  
+  - data encoding/decoding
+  - encryption
+  - DID resolution
 
-  * Sign and verify files
-  * Generate and discover signature chains
-  * Encode/decode signature data
+### Legacy (Bitcoin)
 
-### Legacy BTC Protocol
+Deprecated.
 
-No longer supported. Simple Bitcoin-based e-sign and notarisation. See https://opensig.net/opensig-btc-whitepaper.pdf.
-
-* **[opensig-btc](https://github.com/OpenSig/opensig-btc)**
-  Command line client
-
-* **[opensig-btc-lib](https://github.com/OpenSig/opensig-btc-lib)**
-  Bitcoin e-sign library
+- [`opensig-btc`](https://github.com/OpenSig/opensig-btc)  
+- [`opensig-btc-lib`](https://github.com/OpenSig/opensig-btc-lib)  
 
 ---
 
-## Key Concepts
+## Use
 
-### File Privacy
+OpenSig is a primitive.
 
-- Hashing happens locally on device. 
-- The original file and its raw hash are never published.
-- Only derived, non-reversible signature data is published on-chain.
+Possible applications include:
 
-### Signature Chain
-
-Each file produces a deterministic sequence of signatures:
-
-```
-Sig₀ = H(H_c)
-Sigₙ = H(H_c || Sigₙ₋₁)
-
-where:
-
-H = sha256
-H_c = H(chainId || H_d)
-H_d = H(file)
-```
-
-This ensures:
-
-* uniqueness per file
-* sequence of signatures
-* signatures cannot be linked (without original file)
-* network replay protection
-
-### Encrypted Metadata
-
-Optional signature data (e.g. message, purpose, URL, app-layer metadata):
-
-* can be encrypted using the file hash
-* readable only by those with the file
+- digital identity systems
+- document signing systems
+- timestamping / proof-of-existence
+- authorship and provenance tracking
+- approval and audit logs
+- verifiable publication systems
 
 ---
 
 ## Status
 
-* Open standard
-* Working reference implementation
-* `did:os:...` registered DID method
-* Registry contracts deployed on multiple networks
-* Mobile app in active development (closed source)
+- standard: v0.1
+- reference implementation available
+- contracts deployed on multiple EVM chains
+- `did:os` method defined and registered
 
 ---
 
 ## Contributing
 
-OpenSig is an open standard and welcomes contributions.
+Contributions are welcome:
 
-Ways to contribute:
-
-* protocol feedback
-* SDKs in other languages
-* integrations (creative tools, cloud storage, etc.)
-* developer tooling and examples
+- protocol review
+- alternative implementations
+- tooling and integrations
 
 ---
 
 ## License
 
-MIT License
+MIT
 
 ---
 
-## Learn More
+## Notes
 
-* Website: [https://opensig.net](https://opensig.net)
-* Docs: [OpenSig standard](https://github.com/OpenSig/opensig-protocol/blob/main/standard/opensig-standard.md)
+The OpenSig protocol does not attempt to define:
+- UI/UX
+- workflow semantics
+- legal interpretation
 
----
-
-## Vision
-
-OpenSig is the foundation for a broader shift:
-
-From:
-
-* platform-dependent trust
-
-To:
-
-* **self-sovereign trust through digital identity**
+These are expected to be implemented at higher layers. The OpenSig mobile app is such an implementation. See https://opensig.net
