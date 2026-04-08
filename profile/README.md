@@ -6,6 +6,7 @@ It provides a deterministic, verifiable mapping between:
 - a file
 - a signer
 - a point in time
+- optional intent
 
 Anchored to a public execution layer (EVM-compatible chains).
 
